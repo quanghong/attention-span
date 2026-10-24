@@ -38,6 +38,19 @@ cd attention-span
 
 # Install via go install
 go install ./cmd/attention-span
+
+# Install via make
+make install
+```
+
+### Run locally
+
+```bash
+# If you install via go
+go run ./cmd/attention-span
+
+# If you install via make, please re-open a new session to load binary
+attention-span
 ```
 
 ---
