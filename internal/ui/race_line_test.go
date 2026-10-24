@@ -8,6 +8,8 @@ import (
 	"attention-span/internal/model"
 )
 
+// TestFormatDuration verifies that the FormatDuration function correctly formats
+// various durations into human-readable strings.
 func TestFormatDuration(t *testing.T) {
 	cases := []struct {
 		d        time.Duration
@@ -27,6 +29,8 @@ func TestFormatDuration(t *testing.T) {
 	}
 }
 
+// TestRenderRaceLines verifies that the race lines for the session are rendered
+// correctly with appropriate headers.
 func TestRenderRaceLines(t *testing.T) {
 	sess := model.NewSession(1 * time.Hour)
 	now := time.Now()

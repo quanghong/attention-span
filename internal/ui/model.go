@@ -4,8 +4,8 @@ import (
 	"time"
 
 	"attention-span/internal/model"
-	"attention-span/internal/notify"
 	"attention-span/internal/store"
+
 	tea "github.com/charmbracelet/bubbletea"
 )
 
@@ -22,17 +22,16 @@ type tickMsg time.Time
 
 // Model is the primary Bubble Tea model managing attention span tracking.
 type Model struct {
-	screen          Screen
-	session         *model.Session
-	targetDuration  time.Duration
-	store           *store.Store
-	currentTime     time.Time
-	width           int
-	height          int
-	notifiedEnd     bool
-	previousScreen  Screen
-	cachedHistory   []model.Session
-	cachedStats     *store.HistoryStats
+	screen         Screen
+	session        *model.Session
+	targetDuration time.Duration
+	store          *store.Store
+	currentTime    time.Time
+	width          int
+	height         int
+	previousScreen Screen
+	cachedHistory  []model.Session
+	cachedStats    *store.HistoryStats
 }
 
 // NewModel instantiates the UI Model.
@@ -45,6 +44,8 @@ func NewModel(st *store.Store, initialTarget time.Duration) Model {
 		targetDuration: initialTarget,
 		store:          st,
 		currentTime:    time.Now(),
+		width:          DefaultWidth,
+		height:         DefaultHeight,
 	}
 }
 
@@ -67,15 +68,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case tickMsg:
 		m.currentTime = time.Time(msg)
-
-		// Check if timer reached target during active session
-		if m.screen == ScreenTimer && m.session != nil && !m.notifiedEnd {
-			if m.session.IsTargetReached(m.currentTime) {
-				m.notifiedEnd = true
-				_ = notify.Send("Attention Span", "Target session completed! Excellent focus.")
-			}
-		}
-
 		return m, doTick()
 
 	case tea.KeyMsg:
@@ -105,25 +97,26 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
+// handleSetupKeys processes keyboard interactions on the duration setup screen.
 func (m Model) handleSetupKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
 	case "q":
 		return m, tea.Quit
 
-	case "up", "k":
+	case "up":
 		m.targetDuration += 1 * time.Hour
 		if m.targetDuration > 12*time.Hour {
 			m.targetDuration = 12 * time.Hour
 		}
 
-	case "down", "j":
+	case "down":
 		if m.targetDuration > 1*time.Hour {
 			m.targetDuration -= 1 * time.Hour
 		} else if m.targetDuration > 15*time.Minute {
 			m.targetDuration -= 15 * time.Minute
 		}
 
-	case "right", "l":
+	case "right":
 		m.targetDuration += 15 * time.Minute
 		if m.targetDuration > 12*time.Hour {
 			m.targetDuration = 12 * time.Hour
@@ -136,23 +129,7 @@ func (m Model) handleSetupKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.targetDuration = 5 * time.Minute
 		}
 
-	// Presets
-	case "1":
-		m.targetDuration = 25 * time.Minute
-	case "2":
-		m.targetDuration = 50 * time.Minute
-	case "3":
-		m.targetDuration = 1 * time.Hour
-	case "4":
-		m.targetDuration = 90 * time.Minute
-	case "5":
-		m.targetDuration = 2 * time.Hour
-	case "6":
-		m.targetDuration = 3 * time.Hour
-	case "7":
-		m.targetDuration = 4 * time.Hour
-
-	case "H", "h":
+	case "h":
 		m.previousScreen = ScreenSetup
 		m.screen = ScreenHistory
 		m.loadHistory()
@@ -161,12 +138,12 @@ func (m Model) handleSetupKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.session = model.NewSession(m.targetDuration)
 		m.session.Start(m.currentTime)
 		m.screen = ScreenTimer
-		m.notifiedEnd = false
 	}
 
 	return m, nil
 }
 
+// handleTimerKeys processes keyboard interactions during an active focus session.
 func (m Model) handleTimerKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
 	case "q":
@@ -188,7 +165,7 @@ func (m Model) handleTimerKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.screen = ScreenSummary
 		}
 
-	case " ", "d", "c":
+	case " ", "d":
 		// Toggle attention / distraction state
 		if m.session == nil {
 			return m, nil
@@ -203,16 +180,17 @@ func (m Model) handleTimerKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
+// handleSummaryKeys processes keyboard interactions on the post-session summary screen.
 func (m Model) handleSummaryKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
 	case "q":
 		return m, tea.Quit
 
-	case "enter", " ":
+	case " ":
 		m.screen = ScreenSetup
 		m.session = nil
 
-	case "h", "H":
+	case "h":
 		m.previousScreen = ScreenSummary
 		m.screen = ScreenHistory
 		m.loadHistory()
@@ -221,18 +199,20 @@ func (m Model) handleSummaryKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
+// handleHistoryKeys processes keyboard interactions on the session history screen.
 func (m Model) handleHistoryKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
 	case "q":
 		return m, tea.Quit
 
-	case "esc", "backspace", "h", "H", "enter", " ":
+	case "esc":
 		m.screen = m.previousScreen
 	}
 
 	return m, nil
 }
 
+// loadHistory fetches recorded sessions and aggregate lifetime stats from store.
 func (m *Model) loadHistory() {
 	if m.store != nil {
 		m.cachedHistory, _ = m.store.LoadSessions()
@@ -240,6 +220,7 @@ func (m *Model) loadHistory() {
 	}
 }
 
+// View delegates rendering to the active screen view.
 func (m Model) View() string {
 	switch m.screen {
 	case ScreenSetup:

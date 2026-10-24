@@ -12,7 +12,6 @@ const (
 	StateSetup SessionState = iota
 	StateFocused
 	StateDistracted
-	StatePaused
 	StateCompleted
 )
 
@@ -24,8 +23,6 @@ func (s SessionState) String() string {
 		return "Focused"
 	case StateDistracted:
 		return "Distracted"
-	case StatePaused:
-		return "Paused"
 	case StateCompleted:
 		return "Completed"
 	default:

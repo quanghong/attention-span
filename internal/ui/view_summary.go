@@ -5,15 +5,13 @@ import (
 	"strings"
 
 	"attention-span/internal/model"
+
 	"github.com/charmbracelet/lipgloss"
 )
 
 // RenderSummaryView displays the final post-session breakdown.
 func RenderSummaryView(sess *model.Session, width, height int) string {
-	boxWidth := 64
-	if width > 0 && width < 68 {
-		boxWidth = width - 4
-	}
+	boxWidth := BoxWidth(width)
 
 	title := TitleStyle.Render("📊 SESSION COMPLETED")
 
@@ -42,12 +40,17 @@ func RenderSummaryView(sess *model.Session, width, height int) string {
 	}
 	statsContent := tableStyle.Render(strings.Join(statsList, "\n"))
 
-	// List drops if any
+	// List drops if any (limit to last 3 so it fits vertically)
 	var dropsSection string
 	if len(sess.Drops) > 0 {
 		dropsHeader := lipgloss.NewStyle().Bold(true).Foreground(ColorAccent).Render("\nDistraction Drop Log:")
 		var dropLines []string
-		for i, drop := range sess.Drops {
+		startIdx := 0
+		if len(sess.Drops) > 3 {
+			startIdx = len(sess.Drops) - 3
+		}
+		for i := startIdx; i < len(sess.Drops); i++ {
+			drop := sess.Drops[i]
 			startStr := drop.StartTime.Format("03:04:05 PM")
 			durStr := FormatDuration(drop.Duration)
 			dropLines = append(dropLines, fmt.Sprintf("  #%d: at %s (lost %s)", i+1, startStr, durStr))
@@ -56,11 +59,11 @@ func RenderSummaryView(sess *model.Session, width, height int) string {
 	}
 
 	controls := MetricLabel.Render(
-		"[Enter / Space] Start New Session   │   [h] History   │   [q] Quit",
+		"[Space] Start New Session   │   [h] History   │   [q] Quit",
 	)
 
 	content := lipgloss.JoinVertical(
-		lipgloss.Center,
+		lipgloss.Left,
 		title,
 		gradeBadge,
 		"",
@@ -70,12 +73,15 @@ func RenderSummaryView(sess *model.Session, width, height int) string {
 		controls,
 	)
 
-	boxStyle := SquareClockBox.Copy().Width(boxWidth)
-	card := boxStyle.Render(content)
+	card := SquareClockBox.Width(boxWidth).Render(content)
 
-	if height > 0 {
-		return lipgloss.Place(width, height, lipgloss.Center, lipgloss.Center, card)
+	w, h := width, height
+	if w <= 0 {
+		w = DefaultWidth
+	}
+	if h <= 0 {
+		h = DefaultHeight
 	}
 
-	return card
+	return lipgloss.Place(w, h, lipgloss.Center, lipgloss.Center, card)
 }

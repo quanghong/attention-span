@@ -8,6 +8,8 @@ import (
 	"attention-span/internal/model"
 )
 
+// TestStoreSaveAndLoad verifies that sessions can be saved and loaded correctly,
+// and that statistics are computed accurately.
 func TestStoreSaveAndLoad(t *testing.T) {
 	tempDir := t.TempDir()
 	filePath := filepath.Join(tempDir, "history.json")

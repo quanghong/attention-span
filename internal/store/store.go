@@ -146,6 +146,7 @@ func (s *Store) GetStats() (*HistoryStats, error) {
 	return stats, nil
 }
 
+// readSessionsLocked reads the sessions from the JSON file without acquiring any locks.
 func (s *Store) readSessionsLocked() ([]model.Session, error) {
 	if _, err := os.Stat(s.filePath); errors.Is(err, os.ErrNotExist) {
 		return []model.Session{}, nil

@@ -5,6 +5,8 @@ import (
 	"time"
 )
 
+// TestSessionLifecycle verifies the full lifecycle of a focus session,
+// including state transitions, focus and distraction tracking, and progress calculations.
 func TestSessionLifecycle(t *testing.T) {
 	target := 2 * time.Hour
 	sess := NewSession(target)
@@ -74,6 +76,15 @@ func TestSessionLifecycle(t *testing.T) {
 		t.Fatalf("expected ratio %f, got %f", expectedRatio, ratio)
 	}
 
+	// 50m focus out of 2h (120m) target = 50 / 120 = ~0.4166
+	if progress := sess.FocusProgress(t3); progress < 0.41 || progress > 0.42 {
+		t.Fatalf("expected focus progress ~0.416, got %f", progress)
+	}
+	// 60m elapsed out of 2h (120m) target = 60 / 120 = 0.5
+	if progress := sess.TargetProgress(t3); progress != 0.5 {
+		t.Fatalf("expected target progress 0.5, got %f", progress)
+	}
+
 	// Finish session at t3
 	sess.Finish(t3)
 	if sess.State != StateCompleted {
@@ -87,6 +98,7 @@ func TestSessionLifecycle(t *testing.T) {
 	}
 }
 
+// TestTargetReached verifies that the session correctly identifies when the target duration has been reached.
 func TestTargetReached(t *testing.T) {
 	target := 1 * time.Hour
 	sess := NewSession(target)

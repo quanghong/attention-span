@@ -5,37 +5,28 @@ import (
 	"time"
 
 	"attention-span/internal/model"
+
 	"github.com/charmbracelet/lipgloss"
 )
 
 // RenderTimerView renders the primary active session screen with the Square Clock
 // and the two racing lines (Target Session Line and Attention Line with Distraction Drops).
 func RenderTimerView(sess *model.Session, now time.Time, termWidth, termHeight int) string {
-	boxWidth := 66
-	if termWidth > 0 && termWidth < 70 {
-		boxWidth = termWidth - 4
-	}
-	trackWidth := boxWidth - 8
+	boxWidth := BoxWidth(termWidth)
+	trackWidth := boxWidth - 6
 	if trackWidth < 20 {
 		trackWidth = 20
 	}
 
-	// 1. Clock Header
 	currentTimeStr := now.Format("03:04:05 PM")
 	targetEndTime := sess.StartTime.Add(sess.TargetDuration)
 	endTimeStr := targetEndTime.Format("03:04 PM")
-
-	clockHeader := lipgloss.JoinHorizontal(
-		lipgloss.Center,
-		BigClockStyle.Render("🕒 "+currentTimeStr),
-		MetricLabel.Render("  │  Target End: "+endTimeStr),
-	)
-
-	// 2. Countdown Remaining
 	remaining := sess.Remaining(now)
-	countdownStr := RemainingStyle.Render("REMAINING: " + FormatDuration(remaining))
 
-	// 3. Status Badge & Context Message
+	clockHeader := BigClockStyle.Render("🕒 "+currentTimeStr) +
+		MetricLabel.Render("   │   Target End: ") + MetricValue.Render(endTimeStr) +
+		MetricLabel.Render("   │   ") + RemainingStyle.Render("Remaining: "+FormatDuration(remaining))
+
 	var badge string
 	var statusMsg string
 	if sess.State == model.StateFocused {
@@ -47,19 +38,21 @@ func RenderTimerView(sess *model.Session, now time.Time, termWidth, termHeight i
 		if sess.CurrentDrop != nil {
 			currentDropDuration = fmt.Sprintf(" (%s elapsed)", FormatDuration(sess.CurrentDrop.CalculateDuration(now)))
 		}
-		statusMsg = lipgloss.NewStyle().Foreground(ColorDistract).Render("Press [SPACE] or [c] when you refocus" + currentDropDuration)
+		statusMsg = lipgloss.NewStyle().Foreground(ColorDistract).Render("Press [SPACE] or [d] when you refocus" + currentDropDuration)
 	} else if sess.State == model.StateCompleted {
 		badge = CompletedBadge.Render("★ TARGET TIME REACHED")
 		statusMsg = MetricAccent.Render("Session duration reached! Press [e] to view summary.")
 	}
 
-	// 4. Line 1: Duration from Start Time to End Time
+	statusRow := badge + "  " + statusMsg
+
+	// Line 1: Duration from Start Time to End Time
 	line1 := RenderDurationLine(sess, now, trackWidth)
 
-	// 5. Line 2: Attention Race with Distraction Drops
+	// Line 2: Attention Race with Distraction Drops
 	line2 := RenderAttentionRaceLine(sess, now, trackWidth)
 
-	// 6. Metrics Row
+	// Metrics Row
 	focusRatio := sess.CalculateFocusRatio(now) * 100
 	totalFocus := sess.CalculateFocusTime(now)
 	totalDistract := sess.TotalDistractionTime(now)
@@ -80,19 +73,15 @@ func RenderTimerView(sess *model.Session, now time.Time, termWidth, termHeight i
 		MetricValue.Render(fmt.Sprintf("%d", dropCount)),
 	)
 
-	// 7. Controls Footer
+	// Controls Footer
 	controls := MetricLabel.Render(
 		"[Space] Toggle Attention   │   [e] End Early   │   [q] Quit",
 	)
 
-	content := lipgloss.JoinVertical(
-		lipgloss.Center,
-		"",
+	contentElements := []string{
 		clockHeader,
-		countdownStr,
 		"",
-		badge,
-		statusMsg,
+		statusRow,
 		"",
 		line1,
 		"",
@@ -101,22 +90,26 @@ func RenderTimerView(sess *model.Session, now time.Time, termWidth, termHeight i
 		metricsBar,
 		"",
 		controls,
-		"",
-	)
+	}
 
-	// Style square box according to focus state
+	content := lipgloss.JoinVertical(lipgloss.Left, contentElements...)
+
 	var boxStyle lipgloss.Style
 	if sess.State == model.StateDistracted {
-		boxStyle = DistractedClockBox.Copy().Width(boxWidth)
+		boxStyle = DistractedClockBox.Width(boxWidth)
 	} else {
-		boxStyle = SquareClockBox.Copy().Width(boxWidth)
+		boxStyle = SquareClockBox.Width(boxWidth)
 	}
 
 	card := boxStyle.Render(content)
 
-	if termHeight > 0 {
-		return lipgloss.Place(termWidth, termHeight, lipgloss.Center, lipgloss.Center, card)
+	w, h := termWidth, termHeight
+	if w <= 0 {
+		w = DefaultWidth
+	}
+	if h <= 0 {
+		h = DefaultHeight
 	}
 
-	return card
+	return lipgloss.Place(w, h, lipgloss.Center, lipgloss.Center, card)
 }

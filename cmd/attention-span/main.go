@@ -8,6 +8,7 @@ import (
 
 	"attention-span/internal/store"
 	"attention-span/internal/ui"
+
 	tea "github.com/charmbracelet/bubbletea"
 )
 
@@ -25,13 +26,12 @@ func main() {
 	flag.BoolVar(versionFlag, "v", false, "Print application version (shorthand)")
 
 	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "⚡ Attention Span Tracker v%s ⚡\n\n", version)
+		fmt.Fprintf(os.Stderr, "Attention Span Tracker v%s\n\n", version)
 		fmt.Fprintf(os.Stderr, "Usage:\n  attention-span [flags]\n\n")
 		fmt.Fprintf(os.Stderr, "Flags:\n")
 		flag.PrintDefaults()
 		fmt.Fprintf(os.Stderr, "\nControls in TUI:\n")
-		fmt.Fprintf(os.Stderr, "  [Space] / [d]  Flag distraction (hold attention)\n")
-		fmt.Fprintf(os.Stderr, "  [Space] / [c]  Resume concentration (continue)\n")
+		fmt.Fprintf(os.Stderr, "  [Space] / [d]  Toggle attention (distraction / refocus)\n")
 		fmt.Fprintf(os.Stderr, "  [e]            End session and view summary\n")
 		fmt.Fprintf(os.Stderr, "  [q]            Quit\n")
 	}
@@ -49,6 +49,7 @@ func main() {
 		fmt.Fprintf(os.Stderr, "Warning: could not initialize storage (%v). Sessions will not be persisted.\n", err)
 	}
 
+	// Display past session history and exit
 	if *historyFlag {
 		if sessionStore == nil {
 			fmt.Println("No store available.")
@@ -77,6 +78,7 @@ func main() {
 		os.Exit(0)
 	}
 
+	// Display lifetime focus statistics and exit
 	if *statsFlag {
 		if sessionStore == nil {
 			fmt.Println("No store available.")
