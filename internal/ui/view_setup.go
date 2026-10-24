@@ -9,64 +9,53 @@ import (
 
 // RenderSetupView displays the timer configuration screen before starting.
 func RenderSetupView(target time.Duration, width, height int) string {
-	boxWidth := 56
-	if width > 0 && width < 60 {
-		boxWidth = width - 4
-	}
+	boxWidth := BoxWidth(width)
 
-	title := TitleStyle.Render("⚡ ATTENTION SPAN TRACKER ⚡")
+	title := TitleStyle.Render("ATTENTION SPAN TRACKER")
 	subtitle := MetricLabel.Render("Set your work target duration and train your focus")
 
 	hours := target / time.Hour
 	minutes := (target % time.Hour) / time.Minute
 
-	durationDisplay := lipgloss.NewStyle().
+	durationBadge := lipgloss.NewStyle().
 		Bold(true).
 		Foreground(ColorHighlight).
 		Background(lipgloss.Color("#262626")).
-		Padding(0, 3).
-		Border(lipgloss.RoundedBorder()).
-		BorderForeground(ColorBorder).
+		Padding(0, 1).
 		Render(fmt.Sprintf("%02dh %02dm", hours, minutes))
 
-	adjustPrompt := lipgloss.NewStyle().
-		Foreground(ColorText).
-		Render("Use Arrow keys or H/J/K/L to adjust target time")
-
-	quickPresets := MetricLabel.Render(
-		"Quick Presets: [1] 25m  [2] 50m  [3] 1h  [4] 1.5h  [5] 2h  [6] 3h  [7] 4h",
-	)
+	durationLine := MetricLabel.Render("Target Duration: ") + durationBadge
 
 	startNotice := lipgloss.NewStyle().
 		Bold(true).
 		Foreground(ColorFocus).
-		Render("Press [ENTER] or [SPACE] to START session")
+		Render("▶ Press [ENTER] or [SPACE] to START session")
 
 	controls := MetricLabel.Render(
-		"[← / →] ±15m   [↑ / ↓] ±1h   [h] History   [q] Quit",
+		"Controls: [←/→] ±15m   [↑/↓] ±1h   [h] History   [q] Quit",
 	)
 
-	content := lipgloss.JoinVertical(
-		lipgloss.Center,
+	elements := []string{
 		title,
 		subtitle,
 		"",
-		durationDisplay,
-		"",
-		adjustPrompt,
-		quickPresets,
+		durationLine,
 		"",
 		startNotice,
 		"",
 		controls,
-	)
-
-	boxStyle := SquareClockBox.Copy().Width(boxWidth)
-	card := boxStyle.Render(content)
-
-	if height > 0 {
-		return lipgloss.Place(width, height, lipgloss.Center, lipgloss.Center, card)
 	}
 
-	return card
+	content := lipgloss.JoinVertical(lipgloss.Left, elements...)
+	card := SquareClockBox.Width(boxWidth).Render(content)
+
+	w, h := width, height
+	if w <= 0 {
+		w = DefaultWidth
+	}
+	if h <= 0 {
+		h = DefaultHeight
+	}
+
+	return lipgloss.Place(w, h, lipgloss.Center, lipgloss.Center, card)
 }

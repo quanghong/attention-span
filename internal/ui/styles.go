@@ -4,6 +4,25 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
+// Terminal layout constants tailored for 95x20 terminal window.
+const (
+	DefaultWidth     = 95
+	DefaultHeight    = 20
+	StandardBoxWidth = 91
+)
+
+// BoxWidth returns standard 91 width, gracefully adapting if terminal width is smaller.
+func BoxWidth(termWidth int) int {
+	if termWidth > 0 && termWidth < StandardBoxWidth+4 {
+		w := termWidth - 4
+		if w < 40 {
+			return 40
+		}
+		return w
+	}
+	return StandardBoxWidth
+}
+
 // UI Color Palette (optimized for dark and light terminal backgrounds)
 var (
 	ColorFocus      = lipgloss.Color("#00D7AF") // Vibrant Mint / Emerald
@@ -27,13 +46,13 @@ var (
 			Border(lipgloss.RoundedBorder()).
 			BorderForeground(ColorBorder).
 			Padding(1, 2).
-			Align(lipgloss.Center)
+			Align(lipgloss.Left)
 
 	DistractedClockBox = lipgloss.NewStyle().
 				Border(lipgloss.RoundedBorder()).
 				BorderForeground(ColorDistract).
 				Padding(1, 2).
-				Align(lipgloss.Center)
+				Align(lipgloss.Left)
 
 	// Typography Styles
 	TitleStyle = lipgloss.NewStyle().
@@ -61,12 +80,6 @@ var (
 			Background(ColorDistractBg).
 			Padding(0, 1)
 
-	PausedBadge = lipgloss.NewStyle().
-			Bold(true).
-			Foreground(lipgloss.Color("#000000")).
-			Background(ColorHighlight).
-			Padding(0, 1)
-
 	CompletedBadge = lipgloss.NewStyle().
 			Bold(true).
 			Foreground(lipgloss.Color("#FFFFFF")).
@@ -83,14 +96,6 @@ var (
 	MetricAccent = lipgloss.NewStyle().
 			Bold(true).
 			Foreground(ColorFocus)
-
-	HelpStyle = lipgloss.NewStyle().
-			Foreground(ColorMuted).
-			MarginTop(1)
-
-	KeyStyle = lipgloss.NewStyle().
-			Bold(true).
-			Foreground(ColorAccent)
 
 	TrackTitle = lipgloss.NewStyle().
 			Bold(true).

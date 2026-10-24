@@ -11,22 +11,24 @@ import (
 
 // RenderHistoryView displays lifetime statistics and recent focus sessions.
 func RenderHistoryView(stats *store.HistoryStats, sessions []model.Session, width, height int) string {
-	boxWidth := 68
-	if width > 0 && width < 72 {
-		boxWidth = width - 4
-	}
+	boxWidth := BoxWidth(width)
 
 	title := TitleStyle.Render("📜 FOCUS SESSIONS HISTORY")
 
+	w, h := width, height
+	if w <= 0 {
+		w = DefaultWidth
+	}
+	if h <= 0 {
+		h = DefaultHeight
+	}
+
 	if stats == nil || stats.TotalSessions == 0 {
 		emptyMsg := MetricLabel.Render("No past sessions found yet. Complete a session to see history!")
-		controls := MetricLabel.Render("[Esc / Backspace / h] Back to Setup   │   [q] Quit")
-		content := lipgloss.JoinVertical(lipgloss.Center, title, "", emptyMsg, "", controls)
-		card := SquareClockBox.Copy().Width(boxWidth).Render(content)
-		if height > 0 {
-			return lipgloss.Place(width, height, lipgloss.Center, lipgloss.Center, card)
-		}
-		return card
+		controls := MetricLabel.Render("[Esc] Back to Setup   │   [q] Quit")
+		content := lipgloss.JoinVertical(lipgloss.Left, title, "", emptyMsg, "", controls)
+		card := SquareClockBox.Width(boxWidth).Render(content)
+		return lipgloss.Place(w, h, lipgloss.Center, lipgloss.Center, card)
 	}
 
 	statsBar := fmt.Sprintf(
@@ -39,7 +41,7 @@ func RenderHistoryView(stats *store.HistoryStats, sessions []model.Session, widt
 
 	listHeader := lipgloss.NewStyle().Bold(true).Foreground(ColorAccent).Render("\nRecent Sessions:")
 	var sessionLines []string
-	maxShow := 8
+	maxShow := 6
 	if len(sessions) < maxShow {
 		maxShow = len(sessions)
 	}
@@ -61,11 +63,11 @@ func RenderHistoryView(stats *store.HistoryStats, sessions []model.Session, widt
 	historyList := listHeader + "\n" + strings.Join(sessionLines, "\n")
 
 	controls := MetricLabel.Render(
-		"[Esc / Backspace / h] Back to Setup   │   [q] Quit",
+		"[Esc] Back to Setup   │   [q] Quit",
 	)
 
 	content := lipgloss.JoinVertical(
-		lipgloss.Center,
+		lipgloss.Left,
 		title,
 		statsBar,
 		historyList,
@@ -73,11 +75,6 @@ func RenderHistoryView(stats *store.HistoryStats, sessions []model.Session, widt
 		controls,
 	)
 
-	card := SquareClockBox.Copy().Width(boxWidth).Render(content)
-
-	if height > 0 {
-		return lipgloss.Place(width, height, lipgloss.Center, lipgloss.Center, card)
-	}
-
-	return card
+	card := SquareClockBox.Width(boxWidth).Render(content)
+	return lipgloss.Place(w, h, lipgloss.Center, lipgloss.Center, card)
 }
